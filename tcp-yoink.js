@@ -12,7 +12,7 @@ function usage() {
         + "displaying and optionally saving the captured traffic.\n"
         + "\n"
         + "Options:\n"
-        + "  -o, --out PATH         Saves the captured traffic into FILENAME.\n"
+        + "  -o, --out FILENAME     Saves the captured traffic into FILENAME.\n"
         + "  -n, --newlines         Show newline characters in output.\n"
         + "  -c, --color            Colorful output.\n"
         + "  -q, --quiet            Don't show any output.\n"
@@ -136,7 +136,7 @@ var opts;
 try {
     opts = parseOptions(process.argv);
 } catch(e) {
-    process.stdout.write("Error: " + e.message + "\n");
+    process.stdout.write("Error: " + e.message + "\n\n");
     usage();
     process.exit(1);
 }
@@ -312,24 +312,24 @@ if (opts.tlsIn) {
     server.on("clientError", function(ex, pair) {
         var front = pair.cleartext;
 
-        maybeLog(maybeColor("   × SSL client error from "
+        maybeLog(maybeColor("   × TLS client error from "
             + front.remoteAddress + ":" + front.remotePort + ": " + ex.message + "\n",
             "red"));
 
-        maybeSave("0 SSLERROR " + front.remoteAddress + ":" + front.remotePort);
+        maybeSave("0 TLSERROR " + front.remoteAddress + ":" + front.remotePort);
     });
 } else {
     server = net.createServer(handleFrontConnection);
 }
 
 server.on("error", function(ex) {
-    maybeLog(maybeColor("   × Server error: " + ex.message + "\n", "red"));
+    maybeLog(maybeColor("   × server error: " + ex.message + "\n", "red"));
 
     maybeSave("0 SERVERERROR");
 });
 
 server.listen(opts.front.port, opts.front.host, function() {
-    maybeLog(maybeColor("   ★ Listening on " + opts.front.host + ":" + opts.front.port + "\n"));
+    maybeLog(maybeColor("   ★ listening on " + opts.front.host + ":" + opts.front.port + "\n"));
 
     maybeSave("0 START " + new Date().toISOString());
 });
