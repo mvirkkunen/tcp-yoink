@@ -292,6 +292,17 @@ function handleFrontConnection(front) {
         back = net.connect(opts.back, handleClientConnected);
     }
 
+    front.on("error", function(ex) {
+        maybeLog(maybeColor(
+            prefix + "× frontend connection error: " + ex.message + "\n",
+            "red"));
+
+        maybeSave(index + " FRONTERROR");
+
+        front.end();
+        back.end();
+    });
+
     back.on("error", function(ex) {
         maybeLog(maybeColor(
             prefix + "× backend connection error: " + ex.message + "\n",
