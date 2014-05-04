@@ -28,6 +28,7 @@ function usage() {
         + "\n"
         + "TLS client options:\n"
         + "  --tls-accept-all       Accepts untrusted certificates.\n"
+        + "  --tls-protocol METHOD  TLS secureprotocol setting.\n"
         + "\n");
 }
 
@@ -45,8 +46,8 @@ function parseEndpoint(endpoint, defaultHost) {
 }
 
 function parseOptions(argv) {
-    var opts = { tls: { ca: [ ] } }, positional;
-    
+    var opts = { tls: { ciphers: "ALL", ca: [ ] } }, positional;
+
     loop:
     for (var i = 2; i < argv.length; i++) {
         switch (argv[i]) {
@@ -58,7 +59,7 @@ function parseOptions(argv) {
             case "-o": case "--out":
                 if (i == argv.length - 1)
                     throw new Error("Missing argument FILENAME for --out");
-                
+
                 opts.outFilename = argv[++i];
                 break;
 
@@ -85,7 +86,7 @@ function parseOptions(argv) {
             case "--tls-cert":
                 if (i == argv.length - 1)
                     throw new Error("Missing argument FILENAME for --tls-cert");
-                    
+
                 opts.tls.cert = fs.readFileSync(argv[++i]);
                 break;
 
@@ -112,6 +113,13 @@ function parseOptions(argv) {
 
             case "--tls-accept-all":
                 opts.tlsAcceptAll = true;
+                break;
+
+            case "--tls-protocol":
+                if (i == argv.length - 1)
+                    throw new Error("Missing argument METHOD for --tls-protocol");
+
+                opts.tlsSecureProtocol = argv[++i];
                 break;
 
             default:
@@ -286,7 +294,8 @@ function handleFrontConnection(front) {
 
     if (opts.tlsOut) {
         back = tls.connect(opts.back.port, opts.back.host, {
-            rejectUnauthorized: !opts.tlsAcceptAll
+            rejectUnauthorized: !opts.tlsAcceptAll,
+            secureProtocol: opts.tlsSecureProtocol
         }, handleClientConnected);
     } else {
         back = net.connect(opts.back, handleClientConnected);
