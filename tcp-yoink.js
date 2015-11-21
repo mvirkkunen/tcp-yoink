@@ -15,6 +15,7 @@ function usage() {
         + "  -o, --out FILENAME     Saves the captured traffic into FILENAME.\n"
         + "  -n, --newlines         Show newline characters in output.\n"
         + "  -c, --color            Colorful output.\n"
+        + "  -s, --timestamp        Timestamped output.\n"
         + "  -q, --quiet            Don't show any output.\n"
         + "  -t, --tls-in           Use TLS for front the (server) endpoint.\n"
         + "  -T, --tls-out          Use TLS for back the (client) endpoint.\n"
@@ -70,6 +71,10 @@ function parseOptions(argv) {
 
             case "-c": case "--color":
                 opts.color = true;
+                break;
+
+            case "-s": case "--timestamp":
+                opts.timestamp = true;
                 break;
 
             case "-q": case "--quiet":
@@ -203,13 +208,20 @@ String.prototype.makePrintable = function() {
     });
 }
 
+function maybeTimestamp(str) {
+    if (!opts.timestamp)
+        return str;
+
+    return new Date().toISOString().replace(/[TZ]/g, " ") + str;
+}
+
 function maybeDisplay(buffer, index, out) {
     if (opts.quiet)
         return;
 
-    var prefix = maybeColor(
+    var prefix = maybeTimestamp(maybeColor(
         index.toString().pad(3) + (out ? "→" : "←") + " ",
-        out ? "yellow" : "blue");
+        out ? "yellow" : "blue"));
 
     buffer
         .toString("utf-8")
@@ -226,7 +238,7 @@ function maybeLog(msg) {
     if (opts.quiet)
         return;
 
-    process.stdout.write(msg);
+    process.stdout.write(maybeTimestamp(msg));
 }
 
 function maybeSave(header, data) {
