@@ -24,11 +24,12 @@ function usage() {
         + "  --tls-key FILENAME     Path to the PEM private key file to use. [required]\n"
         + "  --tls-ca FILENAME      Path to a PEM CA certificate to use.\n"
         + "                         Can be specified multiple times to use a chain.\n"
-        + "  --tls-servername HOST  Server name to use for TLS SNI.\n"
         + "\n"
         + "TLS client options:\n"
         + "  --tls-accept-all       Accepts untrusted certificates.\n"
         + "  --tls-protocol METHOD  TLS secureprotocol setting.\n"
+        + "  --tls-servername HOST  Server name to use for TLS SNI.\n"
+        + "  --tls-npn PROTOCOLS    Comma separated list of protocols for TLS NPN.\n"
         + "\n");
 }
 
@@ -108,7 +109,7 @@ function parseOptions(argv) {
                 if (i == argv.length - 1)
                     throw new Error("Missing argument HOST for --tls-servername");
 
-                opts.tls.servername = argv[++i];
+                opts.tlsServername = argv[++i];
                 break;
 
             case "--tls-accept-all":
@@ -120,6 +121,13 @@ function parseOptions(argv) {
                     throw new Error("Missing argument METHOD for --tls-protocol");
 
                 opts.tlsSecureProtocol = argv[++i];
+                break;
+
+            case "--tls-npn":
+                if (i == argv.length - 1)
+                    throw new Error("Missing argument PROTOCOLS for --tls-npn");
+
+                opts.tlsNPNProtocols = argv[++i].split(/,/g);
                 break;
 
             default:
@@ -295,7 +303,9 @@ function handleFrontConnection(front) {
     if (opts.tlsOut) {
         back = tls.connect(opts.back.port, opts.back.host, {
             rejectUnauthorized: !opts.tlsAcceptAll,
-            secureProtocol: opts.tlsSecureProtocol
+            secureProtocol: opts.tlsSecureProtocol,
+            NPNProtocols: opts.tlsNPNProtocols,
+            servername: opts.tlsServername
         }, handleClientConnected);
     } else {
         back = net.connect(opts.back, handleClientConnected);
@@ -330,13 +340,16 @@ if (opts.tlsIn) {
     server = tls.createServer(opts.tls, handleFrontConnection)
 
     server.on("clientError", function(ex, pair) {
-        var front = pair.cleartext;
+        var front = pair.cleartext,
+            addr = (front
+                ? front.remoteAddress + ":" + front.remotePort
+                : "unknown:unknown");
 
         maybeLog(maybeColor("   × TLS client error from "
-            + front.remoteAddress + ":" + front.remotePort + ": " + ex.message + "\n",
+            + addr + ": " + ex.message + "\n",
             "red"));
 
-        maybeSave("0 TLSERROR " + front.remoteAddress + ":" + front.remotePort);
+        maybeSave("0 TLSERROR " + addr);
     });
 } else {
     server = net.createServer(handleFrontConnection);
